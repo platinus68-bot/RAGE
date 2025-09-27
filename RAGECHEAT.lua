@@ -1,3 +1,4 @@
+-- Лютый скрипт для Gunfight Arena: Silent Aimbot + Kill Aura + ESP + No Recoil + Infinite Ammo + Speedhack + Godmode + Жёсткий античит байпас (Delta Mobile)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
@@ -16,11 +17,11 @@ TextChatService.OnIncomingMessage = function(message)
     if text == key then
         scriptActivated = true
         game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "DAN's UltraGodMode V7 Activated",
+            Title = "DAN's UltraGodMode V9 Activated",
             Text = "Ключ '67' принят! Aimbot + Kill Aura + ESP + No Recoil + Infinite Ammo + Speedhack + Godmode запущены! 😈",
             Duration = 7
         })
-        print("Gunfight Arena UltraGodMode V7 Activated! By DAN")
+        print("Gunfight Arena UltraGodMode V9 Activated! By DAN")
     end
 end
 
@@ -34,30 +35,29 @@ local function anticheatBypass()
                 if part:IsA("ForceField") then
                     part:Destroy() -- Удаляем щиты
                 end
-                if part:IsA("BasePart") then
-                    part.Transparency = 0.5 -- ESP
-                    part.Size = part.Size * 1.7 -- Hitbox expander
+                if part:IsA("BasePart") and (part.Name == "Head" or part.Name == "HumanoidRootPart" or part.Name:find("Torso") or part.Name:find("Leg") or part.Name:find("Arm")) then
+                    part.Transparency = 0.6 -- ESP (стабильнее для мобилы)
+                    part.Size = part.Size * 1.5 -- Hitbox expander (меньше для байпаса)
                     part.CanCollide = false -- Игнор стен
                 end
             end
         end
     end
     -- Маскировка: пинг, параметры, анти-spam
-    local fakePing = math.random(20, 80)
+    local fakePing = math.random(15, 70)
     game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:SetValue(fakePing)
     if LocalPlayer.Character then
         LocalPlayer.Character.Humanoid.WalkSpeed = 16 -- Маскируем для античита
         LocalPlayer.Character.Humanoid.JumpPower = 50
-        -- Имитация легитного здоровья
         local humanoid = LocalPlayer.Character.Humanoid
         if humanoid then
-            humanoid.Health = math.clamp(humanoid.Health, humanoid.MaxHealth - 5, humanoid.MaxHealth)
+            humanoid.Health = math.clamp(humanoid.Health, humanoid.MaxHealth - 2, humanoid.MaxHealth) -- Имитация легитного здоровья
         end
     end
-    -- Отключаем клиентские античит-скрипты
+    -- Отключаем античит-скрипты
     for _, v in pairs(game:GetDescendants()) do
         if v:IsA("Script") or v:IsA("ModuleScript") then
-            if v.Name:lower():find("anti") or v.Name:lower():find("cheat") or v.Name:lower():find("detect") then
+            if v.Name:lower():find("anti") or v.Name:lower():find("cheat") or v.Name:lower():find("detect") or v.Name:lower():find("security") then
                 v.Disabled = true
             end
         end
@@ -71,15 +71,13 @@ local function enableGodmode()
         local humanoid = LocalPlayer.Character.Humanoid
         humanoid.MaxHealth = math.huge
         humanoid.Health = math.huge
-        -- Байпас урона
         humanoid:GetPropertyChangedSignal("Health"):Connect(function()
             if humanoid.Health < math.huge then
                 humanoid.Health = math.huge
             end
         end)
-        -- Отключаем проверки смерти
         for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
-            if v:IsA("Script") and v.Name:lower():find("damage") or v.Name:lower():find("health") then
+            if v:IsA("Script") and (v.Name:lower():find("damage") or v.Name:lower():find("health")) then
                 v.Disabled = true
             end
         end
@@ -116,18 +114,28 @@ local function infiniteAmmo()
     if not scriptActivated then return end
     local weapon = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
     if weapon then
+        -- Хук всех возможных параметров патронов
         for _, v in pairs(weapon:GetDescendants()) do
-            if v.Name:lower():find("ammo") or v.Name:lower():find("magazine") then
+            if v.Name:lower():find("ammo") or v.Name:lower():find("magazine") or v.Name:lower():find("clip") or v.Name:lower():find("bullet") then
                 if v:IsA("NumberValue") or v:IsA("IntValue") then
-                    v.Value = math.huge
+                    v.Value = 999999
+                    v:GetPropertyChangedSignal("Value"):Connect(function()
+                        if v.Value < 999999 then
+                            v.Value = 999999
+                        end
+                    end)
                 end
             end
         end
-        local ammoRemote = ReplicatedStorage:FindFirstChild("Reload") or weapon:FindFirstChild("Reload")
-        if ammoRemote and ammoRemote:IsA("RemoteEvent") then
-            pcall(function()
-                ammoRemote:FireServer(math.huge)
-            end)
+        -- Байпас перезарядки
+        local ammoRemotes = {"Reload", "ReloadEvent", "Ammo", "GunReload", "AmmoUpdate"}
+        for _, remoteName in pairs(ammoRemotes) do
+            local ammoRemote = ReplicatedStorage:FindFirstChild(remoteName) or weapon:FindFirstChild(remoteName) or game:GetService("ReplicatedFirst"):FindFirstChild(remoteName)
+            if ammoRemote and ammoRemote:IsA("RemoteEvent") then
+                pcall(function()
+                    ammoRemote:FireServer(999999)
+                end)
+            end
         end
     end
 end
@@ -174,14 +182,16 @@ local function autoKillAll()
                     local targetHead = player.Character.Head.Position
                     local args = {
                         [1] = player.Character.Humanoid,
-                        [2] = targetHead + Vector3.new(math.random(-1.2, 1.2), math.random(-0.4, 0.4), math.random(-1.2, 1.2)),
+                        [2] = targetHead + Vector3.new(math.random(-0.8, 0.8), math.random(-0.2, 0.2), math.random(-0.8, 0.8)),
                         [3] = 10000, -- Инстант-килл
                         [4] = "Head",
-                        [5] = weapon
+                        [5] = weapon,
+                        [6] = LocalPlayer.Character.HumanoidRootPart.Position -- Добавляем позицию игрока для байпаса
                     }
-                    local remotes = {"Damage", "HitRemote", "ShootEvent", "GunDamage", "BulletHit"}
+                    -- Расширенный список RemoteEvents для Gunfight Arena
+                    local remotes = {"Damage", "HitRemote", "ShootEvent", "GunDamage", "BulletHit", "WeaponHit", "FireEvent", "DamageHandler", "HitEvent", "WeaponDamage"}
                     for _, remoteName in pairs(remotes) do
-                        local remote = ReplicatedStorage:FindFirstChild(remoteName) or weapon:FindFirstChild(remoteName)
+                        local remote = ReplicatedStorage:FindFirstChild(remoteName) or weapon:FindFirstChild(remoteName) or game:GetService("ReplicatedFirst"):FindFirstChild(remoteName)
                         if remote and remote:IsA("RemoteEvent") then
                             pcall(function()
                                 remote:FireServer(unpack(args))
@@ -216,7 +226,7 @@ end)
 local lastShot = 0
 RunService.Heartbeat:Connect(function()
     if not scriptActivated then return end
-    if tick() - lastShot >= 0.07 then -- Тайминг для античита
+    if tick() - lastShot >= 0.08 then -- Увеличенный тайминг для байпаса
         anticheatBypass() -- Жёсткий байпас + ESP
         enableGodmode() -- Бессмертие
         disableRecoil() -- Без отдачи
@@ -230,9 +240,11 @@ end)
 
 -- Начальное уведомление
 game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "DAN's Gunfight Arena UltraGodMode V7",
+    Title = "DAN's Gunfight Arena UltraGodMode V9",
     Text = "Введите ключ '67' в чат для активации! 😈",
     Duration = 10
 })
+
+print("Gunfight Arena Script V9 Loaded! By DAN - Введите '67' в чат!")
 
 print("Gunfight Arena Script V7 Loaded! By DAN - Введите '67' в чат!")
